@@ -40,19 +40,28 @@ export default function Home() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ prompt: currentInput, mode }),
       });
+
       const data = await res.json();
 
       const assistantMsg: Message = {
         id: (Date.now() + 1).toString(),
         role: 'assistant',
-        content: data.text || '',
+        content: data.text || data.error || 'No response returned.',
         mediaUrl: data.mediaUrl,
         type: mode,
       };
 
       setMessages((prev) => [...prev, assistantMsg]);
-    } catch (err) {
-      console.error(err);
+    } catch (err: any) {
+      setMessages((prev) => [
+        ...prev,
+        {
+          id: (Date.now() + 1).toString(),
+          role: 'assistant',
+          content: `Network error: ${err.message}`,
+          type: mode,
+        },
+      ]);
     } finally {
       setLoading(false);
     }
@@ -61,20 +70,17 @@ export default function Home() {
   return (
     <div className="flex flex-col h-screen bg-slate-900 text-slate-100">
       <header className="border-b border-slate-800 p-4 text-center">
-        <h1 className="text-xl font-bold bg-gradient-to-r from-blue-400 to-purple-500 bg-clip-text text-transparent">
-          AI Studio
-        </h1>
+        <h1 className="text-xl font-bold text-blue-400">AI Studio</h1>
       </header>
 
-      <div className="flex justify-center gap-2 p-4 bg-slate-950/50">
+      <div className="flex justify-center gap-2 p-4 bg-slate-950">
         {(['chat', 'image', 'video'] as Mode[]).map((m) => (
           <button
             key={m}
+            type="button"
             onClick={() => setMode(m)}
-            className={`px-4 py-2 rounded-xl text-sm font-semibold capitalize transition-all ${
-              mode === m
-                ? 'bg-blue-600 text-white shadow-lg shadow-blue-500/30'
-                : 'bg-slate-800 text-slate-400 hover:bg-slate-700 hover:text-slate-200'
+            className={`px-4 py-2 rounded-xl text-sm font-semibold capitalize ${
+              mode === m ? 'bg-blue-600 text-white' : 'bg-slate-800 text-slate-400'
             }`}
           >
             {m === 'chat' && '💬 Chat'}
@@ -85,53 +91,31 @@ export default function Home() {
       </div>
 
       <div className="flex-1 overflow-y-auto p-4 space-y-4 max-w-3xl w-full mx-auto">
-        {messages.length === 0 ? (
-          <div className="h-full flex flex-col items-center justify-center text-slate-500 text-center">
-            <p className="text-lg">Select a mode and enter a prompt to start!</p>
-          </div>
-        ) : (
-          messages.map((msg) => (
+        {messages.map((msg) => (
+          <div
+            key={msg.id}
+            className={`flex flex-col ${
+              msg.role === 'user' ? 'items-end' : 'items-start'
+            }`}
+          >
             <div
-              key={msg.id}
-              className={`flex flex-col ${
-                msg.role === 'user' ? 'items-end' : 'items-start'
+              className={`max-w-md rounded-2xl px-4 py-3 text-sm ${
+                msg.role === 'user'
+                  ? 'bg-blue-600 text-white'
+                  : 'bg-slate-800 text-slate-200 border border-slate-700'
               }`}
             >
-              <div
-                className={`max-w-md rounded-2xl px-4 py-3 text-sm ${
-                  msg.role === 'user'
-                    ? 'bg-blue-600 text-white'
-                    : 'bg-slate-800 text-slate-200 border border-slate-700'
-                }`}
-              >
-                {msg.content && <p>{msg.content}</p>}
-                
-                {msg.mediaUrl && msg.type === 'image' && (
-                  <img
-                    src={msg.mediaUrl}
-                    alt="AI Result"
-                    className="mt-3 rounded-lg w-full object-cover"
-                  />
-                )}
-                {msg.mediaUrl && msg.type === 'video' && (
-                  <video
-                    src={msg.mediaUrl}
-                    controls
-                    autoPlay
-                    loop
-                    className="mt-3 rounded-lg w-full"
-                  />
-                )}
-              </div>
+              {msg.content && <p>{msg.content}</p>}
+              {msg.mediaUrl && msg.type === 'image' && (
+                <img src={msg.mediaUrl} alt="AI Result" className="mt-3 rounded-lg w-full" />
+              )}
+              {msg.mediaUrl && msg.type === 'video' && (
+                <video src={msg.mediaUrl} controls autoPlay loop className="mt-3 rounded-lg w-full" />
+              )}
             </div>
-          ))
-        )}
-        {loading && (
-          <div className="flex items-center space-x-2 text-slate-400 text-sm">
-            <div className="w-2 h-2 bg-blue-500 rounded-full animate-ping" />
-            <span>Generating {mode}...</span>
           </div>
-        )}
+        ))}
+        {loading && <div className="text-slate-400 text-sm">Thinking...</div>}
       </div>
 
       <div className="p-4 border-t border-slate-800 bg-slate-950">
@@ -141,12 +125,12 @@ export default function Home() {
             value={input}
             onChange={(e) => setInput(e.target.value)}
             placeholder={`Type a prompt for ${mode}...`}
-            className="flex-1 bg-slate-900 border border-slate-800 rounded-xl px-4 py-3 text-sm text-slate-100 placeholder-slate-500 focus:outline-none focus:border-blue-500"
+            className="flex-1 bg-slate-900 border border-slate-800 rounded-xl px-4 py-3 text-sm text-slate-100"
           />
           <button
             type="submit"
             disabled={loading}
-            className="bg-blue-600 hover:bg-blue-500 disabled:opacity-50 text-white font-medium px-6 py-3 rounded-xl transition"
+            className="bg-blue-600 text-white px-6 py-3 rounded-xl"
           >
             Send
           </button>
