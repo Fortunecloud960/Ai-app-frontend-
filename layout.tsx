@@ -5,16 +5,12 @@ export const metadata = {
   description: 'Chat and Image Generation App',
 }
 
-export default function RootLayout({
-  children,
-}: {
-  children: React.ReactNode
-}) {
+export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
     <html lang="en">
-      <body className="bg-gray-900 text-white">
+      <body>
         {children}
       </body>
     </html>
   )
-}    
+}
